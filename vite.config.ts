@@ -12,7 +12,7 @@ export default defineConfig({
   server: {
     proxy: {
       // toutes les requêtes commençant par '/api' seront transférées à 'http://localhost:8080'
-      "/api": "http://localhost:8080",
+      "/api": "http://localhost:8085",
     },
   },
 });

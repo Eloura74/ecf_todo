@@ -1,3 +1,9 @@
+interface Task {
+  _id: string;
+  title: string;
+  completed: boolean;
+}
+
 // src/App.jsx
 import { useState, useEffect } from "react";
 import "./app.css";
@@ -7,8 +13,9 @@ import "./app.css";
 // console.log('API_URL:', API_URL)
 
 function App() {
-  const [tasks, setTasks] = useState([]);
-  const [newTask, setNewTask] = useState("");
+  const [tasks, setTasks] = useState<Task[]>([]);
+
+  const [newTask, setNewTask] = useState<string>("");
 
   useEffect(() => {
     fetch(`/api/tasks`)
@@ -37,14 +44,14 @@ function App() {
       });
   }
 
-  function handleToggleTask(id) {
+  function handleToggleTask(id: string) {
     const task = tasks.find((task) => task._id === id);
     fetch(`/api/tasks/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ ...task, completed: !task.completed }),
+      body: JSON.stringify({ ...task, completed: !task?.completed }),
     })
       .then((res) => res.json())
       .then((updatedTask) => {
@@ -59,7 +66,7 @@ function App() {
       });
   }
 
-  function handleDeleteTask(id) {
+  function handleDeleteTask(id: string) {
     fetch(`/api/tasks/${id}`, { method: "DELETE" }).then(() => {
       setTasks(tasks.filter((task) => task._id !== id));
     });
@@ -69,7 +76,7 @@ function App() {
     return tasks.map((task) => (
       <li key={task._id} className="flex items-center gap-8">
         <span
-          style={{ textDecoration: task.completed ? "line-through" : "none" }}
+          style={{ textDecoration: task?.completed ? "line-through" : "none" }}
           onClick={() => handleToggleTask(task._id)}
           className="cursor-pointer flex-1"
         >
