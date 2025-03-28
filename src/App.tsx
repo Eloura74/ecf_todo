@@ -4,115 +4,105 @@ interface Task {
   completed: boolean;
 }
 
-// src/App.jsx
 import { useState, useEffect } from "react";
-import "./app.css";
-
-// Utiliser la variable d'environnement pour l'URL de l'API
-// const API_URL = process.env.VITE_API_URL;
-// console.log('API_URL:', API_URL)
+import "./index.css";
 
 function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
-
   const [newTask, setNewTask] = useState<string>("");
 
+  // Charger les tâches
   useEffect(() => {
     fetch(`/api/tasks`)
       .then((res) => res.json())
-      .then((data) => {
-        setTasks(data);
-      });
+      .then((data) => setTasks(data));
   }, []);
 
+  // ✅ Ajouter une tâche
   function handleAddTask() {
-    if (!newTask) {
-      alert("Please enter a task");
-      return;
-    }
+    if (!newTask.trim()) return alert("Please enter a task");
+
     fetch(`/api/tasks`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title: newTask, completed: false }),
     })
       .then((res) => res.json())
       .then((task) => {
-        setTasks([...tasks, task]);
+        setTasks((prev) => [...prev, task]);
         setNewTask("");
       });
   }
 
-  function handleToggleTask(id: string) {
-    const task = tasks.find((task) => task._id === id);
+  // ✏️ Modifier une tâche (toggle completed)
+  function handleModifyTask(id: string) {
+    setTasks((prevTasks) =>
+      prevTasks.map((t) =>
+        t._id === id ? { ...t, completed: !t.completed } : t
+      )
+    );
+
+    // On récupère la valeur mise à jour depuis le nouvel état (immédiat)
+    const updatedTask = tasks.find((t) => t._id === id);
+    const updatedCompleted = !(updatedTask?.completed ?? false); // 🔄 toggle local
+
     fetch(`/api/tasks/${id}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ ...task, completed: !task?.completed }),
-    })
-      .then((res) => res.json())
-      .then((updatedTask) => {
-        console.log("updatedTask:", updatedTask);
-        setTasks((prevTasks) =>
-          prevTasks.map((task) =>
-            task._id === id
-              ? { ...updatedTask, completed: !updatedTask.completed }
-              : task
-          )
-        );
-      });
-  }
-
-  function handleDeleteTask(id: string) {
-    fetch(`/api/tasks/${id}`, { method: "DELETE" }).then(() => {
-      setTasks(tasks.filter((task) => task._id !== id));
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ completed: updatedCompleted }),
+    }).catch((err) => {
+      console.error("❌ PUT error:", err);
+      // En cas d’erreur, tu pourrais même faire un rollback ici si besoin
     });
   }
 
+  // ❌ Supprimer une tâche
+  function handleDeleteTask(id: string) {
+    if (!id) {
+      console.warn("ID de suppression invalide :", id);
+      return;
+    }
+
+    fetch(`/api/tasks/${id}`, { method: "DELETE" }).then(() => {
+      setTasks((prev) => prev.filter((t) => t._id !== id));
+    });
+  }
+
+  // 🖼️ Rendu des tâches
   function renderTasks() {
     return tasks.map((task) => (
-      <li key={task._id} className="flex items-center gap-8">
+      <li key={task._id} className="task-item">
         <span
-          style={{ textDecoration: task?.completed ? "line-through" : "none" }}
-          onClick={() => handleToggleTask(task._id)}
-          className="cursor-pointer flex-1"
+          className={task.completed ? "completed" : ""}
+          onClick={() => handleModifyTask(task._id)}
         >
           {task.title}
         </span>
-        <button
-          onClick={() => handleDeleteTask(task._id)}
-          className="cursor-pointer"
-        >
-          Delete
-        </button>
+
+        <button onClick={() => handleDeleteTask(task._id)}>Delete</button>
       </li>
     ));
   }
 
   return (
-    <main className="mw-420 m-auto p-16 flex flex-col gap-16">
-      <div className="p-16 shadow rounded-16">
-        <h1>Todo List</h1>
-        <div className="flex items-center">
-          <input
-            value={newTask}
-            onChange={(e) => setNewTask(e.target.value)}
-            placeholder="New task"
-            className="flex-1 p-8"
-          />
-          <button onClick={handleAddTask} className="p-8 cursor-pointer">
-            Add Task
-          </button>
-        </div>
-      </div>
-      {tasks.length > 0 ? (
-        <ul className="flex flex-col gap-8 p-16">{renderTasks()}</ul>
-      ) : (
-        <p className="p-16">No tasks yet</p>
-      )}
+    <main>
+      <h1>Todo List</h1>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleAddTask();
+        }}
+      >
+        <input
+          value={newTask}
+          onChange={(e) => setNewTask(e.target.value)}
+          placeholder="New task"
+        />
+        <button type="submit">Add Task</button>
+      </form>
+
+      {tasks.length > 0 ? <ul>{renderTasks()}</ul> : <p>No tasks yet</p>}
     </main>
   );
 }
